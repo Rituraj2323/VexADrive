@@ -2,7 +2,7 @@
 
 An end-to-end telemetry processing engine and interactive web dashboard for **VexarDrive Technologies** fleet operations in Bengaluru.
 
-Live Dashboard URL: **[https://605b18fbc82a2d.lhr.life](https://605b18fbc82a2d.lhr.life)**
+Live Dashboard URL: **[https://deploy-pearl-alpha-76.vercel.app](https://deploy-pearl-alpha-76.vercel.app)**
 
 ---
 
