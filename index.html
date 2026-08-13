@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>VexarDrive — Fleet Dashboards</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b0f19;--bg2:#111827;--card:#161e2e;--card-hover:#1c273a;
+  --border:#1f293d;--border2:#2d3a52;
+  --accent:#3b82f6;--accent2:#6366f1;
+  --green:#10b981;--amber:#f59e0b;--red:#ef4444;
+  --green-bg:rgba(16,185,129,0.12);--amber-bg:rgba(245,158,11,0.12);--red-bg:rgba(239,68,68,0.12);--blue-bg:rgba(59,130,246,0.12);
+  --green-border:rgba(16,185,129,0.3);--amber-border:rgba(245,158,11,0.3);--red-border:rgba(239,68,68,0.3);--blue-border:rgba(59,130,246,0.3);
+  --text:#f3f4f6;--text2:#9ca3af;--text3:#6b7280;
+  --shadow:0 4px 20px rgba(0,0,0,0.3);
+  --shadow-lg:0 10px 30px rgba(0,0,0,0.5);
+}
+html{height:100%;scroll-behavior:smooth}
+body{
+  font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);
+  min-height:100vh;
+}
+
+/* Header */
+.header{
+  background:rgba(17,24,39,0.95);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+  padding:0 3rem;position:sticky;top:0;z-index:50;
+}
+.header-inner{
+  max-width:1200px;margin:0 auto;display:flex;align-items:center;
+  justify-content:space-between;height:68px;
+}
+.logo{display:flex;align-items:center;gap:12px;}
+.logo-icon{
+  width:36px;height:36px;background:linear-gradient(135deg,#3b82f6,#6366f1);
+  border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;
+  box-shadow:0 0 15px rgba(59,130,246,0.4);
+}
+.logo-text{font-size:1.05rem;font-weight:800;color:var(--text);letter-spacing:-0.01em;}
+.logo-sub{font-size:0.68rem;color:var(--text3);}
+.header-meta{font-size:0.78rem;color:var(--text2);background:var(--bg);padding:6px 14px;border-radius:20px;border:1px solid var(--border);}
+
+/* Tabs */
+.tabs{
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  padding:0 3rem;
+}
+.tabs-inner{
+  max-width:1200px;margin:0 auto;display:flex;gap:8px;
+}
+.tab{
+  padding:16px 24px;font-size:0.875rem;font-weight:600;color:var(--text2);
+  cursor:pointer;border-bottom:3px solid transparent;transition:all 0.2s;
+  background:none;border-top:none;border-left:none;border-right:none;
+}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+/* Content */
+.content{max-width:1200px;margin:0 auto;padding:2.5rem 3rem 4rem;}
+.page{display:none;}
+.page.active{display:block;animation:fadeIn 0.25s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+/* Section titles */
+.section-title{
+  font-size:1.35rem;font-weight:800;color:var(--text);
+  margin-bottom:0.5rem;letter-spacing:-0.02em;
+}
+.section-desc{
+  font-size:0.875rem;color:var(--text2);line-height:1.6;
+  margin-bottom:2rem;max-width:720px;
+}
+
+/* Methodology */
+.method{
+  background:linear-gradient(135deg,rgba(59,130,246,0.08) 0%,rgba(17,24,39,0.4) 100%);
+  border:1px solid var(--blue-border);
+  border-radius:14px;padding:1.5rem 2rem;margin-bottom:2.5rem;
+}
+.method.green-m{
+  background:linear-gradient(135deg,rgba(16,185,129,0.08) 0%,rgba(17,24,39,0.4) 100%);
+  border-color:var(--green-border);
+}
+.method-label{
+  font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;
+  margin-bottom:1rem;display:flex;align-items:center;gap:8px;
+}
+.method-label.blue{color:var(--accent);}
+.method-label.green{color:var(--green);}
+.method-list{
+  display:grid;grid-template-columns:1fr 1fr;gap:12px 36px;
+  list-style:none;
+}
+.method-list li{
+  font-size:0.83rem;color:var(--text2);line-height:1.5;
+  padding-left:16px;position:relative;
+}
+.method-list li::before{
+  content:'';position:absolute;left:0;top:7px;
+  width:6px;height:6px;border-radius:50%;
+}
+.method-list li.blue::before{background:var(--accent);box-shadow:0 0 8px var(--accent);}
+.method-list li.green::before{background:var(--green);box-shadow:0 0 8px var(--green);}
+
+/* KPI row */
+.kpi-row{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:1.25rem;
+  margin-bottom:2.5rem;
+}
+.kpi-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:14px;padding:1.5rem;box-shadow:var(--shadow);
+  transition:transform 0.2s, border-color 0.2s;
+}
+.kpi-card:hover{transform:translateY(-2px);border-color:var(--border2);}
+.kpi-card-val{font-size:2.2rem;font-weight:900;line-height:1;margin-bottom:6px;}
+.kpi-card-label{font-size:0.72rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;}
+.kpi-card-sub{font-size:0.75rem;color:var(--text2);margin-top:6px;}
+.c-blue{color:var(--accent);} .c-green{color:var(--green);} .c-amber{color:var(--amber);} .c-red{color:var(--red);}
+
+/* Search */
+.search-bar{
+  display:flex;align-items:center;gap:14px;margin-bottom:2rem;
+}
+.search-input{
+  flex:1;max-width:380px;
+  background:var(--card);border:1px solid var(--border);border-radius:10px;
+  padding:11px 18px;font-size:0.875rem;color:var(--text);outline:none;
+  font-family:inherit;transition:all 0.2s;
+}
+.search-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,0.15);}
+.search-input::placeholder{color:var(--text3);}
+.sort-select{
+  background:var(--card);border:1px solid var(--border);border-radius:10px;
+  padding:11px 16px;font-size:0.83rem;color:var(--text2);outline:none;cursor:pointer;
+  font-family:inherit;
+}
+
+/* Driver table */
+.data-table-wrap{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  overflow:hidden;box-shadow:var(--shadow);margin-bottom:2.5rem;
+}
+table{width:100%;border-collapse:collapse;}
+th{
+  background:var(--bg2);color:var(--text3);
+  font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;
+  padding:14px 20px;text-align:left;border-bottom:1px solid var(--border);
+  white-space:nowrap;
+}
+td{
+  padding:16px 20px;border-bottom:1px solid var(--border);
+  font-size:0.875rem;color:var(--text2);white-space:nowrap;
+}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--card-hover);}
+.driver-name-cell{display:flex;align-items:center;gap:14px;}
+.avatar{
+  width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-size:0.75rem;font-weight:800;flex-shrink:0;
+}
+.driver-name{font-weight:700;color:var(--text);}
+.driver-meta{font-size:0.73rem;color:var(--text3);margin-top:1px;}
+.badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:0.72rem;font-weight:700;padding:4px 12px;
+  border-radius:20px;
+}
+.badge-safe{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);}
+.badge-mod{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border);}
+.badge-risky{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border);}
+.badge-ok{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);}
+.badge-monitor{background:rgba(99,102,241,0.12);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);}
+.badge-due{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border);}
+.badge-critical{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border);box-shadow:0 0 10px rgba(239,68,68,0.2);}
+
+/* Score bar */
+.score-bar{display:flex;align-items:center;gap:12px;}
+.score-bar-track{
+  width:90px;height:7px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;
+}
+.score-bar-fill{height:100%;border-radius:4px;transition:width 0.6s ease;}
+.score-bar-val{font-weight:800;font-size:0.95rem;min-width:34px;}
+
+/* Detail button */
+.detail-btn{
+  background:var(--blue-bg);border:1px solid var(--blue-border);
+  color:var(--accent);padding:7px 16px;border-radius:8px;cursor:pointer;
+  font-size:0.78rem;font-weight:600;font-family:inherit;transition:all 0.2s;
+}
+.detail-btn:hover{background:var(--accent);color:white;border-color:var(--accent);box-shadow:0 0 12px rgba(59,130,246,0.4);}
+
+/* Charts */
+.chart-row{
+  display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:2.5rem;
+}
+.chart-card{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:1.75rem;box-shadow:var(--shadow);
+}
+.chart-card.full{grid-column:span 2;}
+.chart-title{font-size:0.95rem;font-weight:700;color:var(--text);margin-bottom:4px;}
+.chart-sub{font-size:0.78rem;color:var(--text2);margin-bottom:1.25rem;line-height:1.4;}
+canvas{max-height:280px;}
+
+/* Detail modal */
+.overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);
+  z-index:100;align-items:center;justify-content:center;
+}
+.overlay.open{display:flex;}
+.detail-modal{
+  background:var(--card);border:1px solid var(--border2);border-radius:20px;width:min(680px,92vw);
+  max-height:85vh;overflow-y:auto;padding:2.5rem;box-shadow:var(--shadow-lg);
+  position:relative;color:var(--text);
+}
+.modal-close{
+  position:absolute;top:1.25rem;right:1.25rem;
+  background:var(--bg2);border:1px solid var(--border);color:var(--text2);
+  width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:1rem;
+  display:flex;align-items:center;justify-content:center;transition:all 0.2s;
+}
+.modal-close:hover{background:var(--card-hover);color:var(--text);}
+.modal-name{font-size:1.3rem;font-weight:800;margin-bottom:4px;}
+.modal-sub{font-size:0.83rem;color:var(--text2);margin-bottom:2rem;}
+.modal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:2rem;}
+.modal-stat{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:1rem;}
+.modal-stat-label{font-size:0.68rem;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px;}
+.modal-stat-val{font-size:1.1rem;font-weight:800;color:var(--text);}
+.bar-section{margin-top:1.5rem;}
+.bar-section-title{font-size:0.75rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:1rem;}
+.bar-row{margin-bottom:14px;}
+.bar-label{display:flex;justify-content:space-between;font-size:0.83rem;color:var(--text2);margin-bottom:6px;font-weight:500;}
+.bar-track{height:8px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:4px;transition:width 0.8s cubic-bezier(0.16,1,0.3,1);}
+
+/* Vehicle cards */
+.veh-list{margin-bottom:2.5rem;}
+.veh-item{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:1.5rem 2rem;margin-bottom:1rem;box-shadow:var(--shadow);
+  display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr auto;gap:1.5rem;align-items:center;
+  transition:border-color 0.2s, transform 0.2s;
+}
+.veh-item:hover{transform:translateY(-2px);border-color:var(--border2);}
+.veh-item.critical-item{border-left:4px solid var(--red);}
+.veh-item.due-item{border-left:4px solid var(--amber);}
+.veh-item.monitor-item{border-left:4px solid #6366f1;}
+.veh-item.ok-item{border-left:4px solid var(--green);}
+.vi-id{font-size:0.75rem;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+.vi-name{font-size:1rem;font-weight:700;color:var(--text);}
+.vi-model{font-size:0.8rem;color:var(--text2);}
+.vi-stat-val{font-size:1.15rem;font-weight:800;color:var(--text);}
+.vi-stat-label{font-size:0.7rem;color:var(--text3);font-weight:500;}
+
+/* Assumptions */
+.assume-table{
+  width:100%;border-collapse:collapse;
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  overflow:hidden;box-shadow:var(--shadow);margin-bottom:2.5rem;
+}
+.assume-table th{
+  background:var(--bg2);font-size:0.72rem;font-weight:700;color:var(--text3);
+  text-transform:uppercase;letter-spacing:0.06em;
+  padding:14px 20px;text-align:left;border-bottom:1px solid var(--border);
+}
+.assume-table td{
+  padding:14px 20px;font-size:0.85rem;color:var(--text2);
+  border-bottom:1px solid var(--border);line-height:1.5;
+}
+.assume-table tr:last-child td{border-bottom:none;}
+.assume-table tr:hover td{background:var(--card-hover);}
+
+/* Uses */
+.uses-list{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+.use-card{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:1.5rem 1.75rem;box-shadow:var(--shadow);transition:all 0.2s;
+}
+.use-card:hover{border-color:var(--border2);transform:translateY(-2px);}
+.use-icon{font-size:1.6rem;margin-bottom:10px;}
+.use-title{font-size:0.95rem;font-weight:700;color:var(--text);margin-bottom:6px;}
+.use-desc{font-size:0.83rem;color:var(--text2);line-height:1.6;}
+
+/* Responsive */
+@media(max-width:900px){
+  .header,.tabs,.content{padding-left:1.5rem;padding-right:1.5rem;}
+  .kpi-row{grid-template-columns:1fr 1fr;}
+  .chart-row{grid-template-columns:1fr;}
+  .chart-card.full{grid-column:span 1;}
+  .method-list{grid-template-columns:1fr;}
+  .veh-item{grid-template-columns:1fr 1fr;}
+  .uses-list{grid-template-columns:1fr;}
+  .modal-grid{grid-template-columns:1fr 1fr;}
+}
+@media(max-width:600px){
+  .kpi-row{grid-template-columns:1fr;}
+  .veh-item{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">🚀</div>
+      <div>
+        <div class="logo-text">VexarDrive Fleet Dashboards</div>
+        <div class="logo-sub">Fleet Analytics & Intelligence</div>
+      </div>
+    </div>
+    <div class="header-meta">Aug 2026 · Week 1 · 30 Drivers · 30 Vehicles · Bengaluru</div>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tabs-inner">
+    <button class="tab active" id="tab-drivers" onclick="goTo('drivers')">Driver Behaviour</button>
+    <button class="tab" id="tab-vehicles" onclick="goTo('vehicles')">Vehicle Health</button>
+    <button class="tab" id="tab-notes" onclick="goTo('notes')">Assumptions & Other Uses</button>
+  </div>
+</div>
+
+<div class="content">
+
+<!-- ═══════ DRIVER BEHAVIOUR ═══════ -->
+<div class="page active" id="page-drivers">
+
+  <h1 class="section-title">Driver Behaviour Dashboard</h1>
+  <p class="section-desc">Identifies and scores risky vs. safe driving patterns for each of the 30 drivers, using IMU sensor data (accelerometer + gyroscope) and GPS speed readings.</p>
+
+  <div class="method">
+    <div class="method-label blue">📐 Scoring Methodology — Risk Score (0 = safest, 100 = riskiest)</div>
+    <ul class="method-list">
+      <li class="blue"><strong>Speed Violations (30%)</strong> — % of minutes exceeding 60 km/h, the Karnataka urban two-wheeler limit</li>
+      <li class="blue"><strong>Hard Braking (25%)</strong> — % of minutes with Accel_X &lt; −0.3g (industry deceleration threshold)</li>
+      <li class="blue"><strong>Sharp Turns (20%)</strong> — % of minutes with |Accel_Y| &gt; 0.3g (aggressive lateral force)</li>
+      <li class="blue"><strong>Yaw Spikes (15%)</strong> — % of minutes with |Gyro_Z| &gt; 10 dps (abrupt steering rotation)</li>
+      <li class="blue"><strong>Night Driving (10%)</strong> — % of trips starting between 21:00–05:59 (low-visibility window)</li>
+      <li class="blue"><strong>Experience Bonus</strong> — Up to −10 pts for 14+ years license experience</li>
+    </ul>
+  </div>
+
+  <div class="kpi-row" id="driverKPIs"></div>
+
+  <div class="search-bar">
+    <input class="search-input" id="driverSearch" placeholder="Search by name, ID, or hub…" oninput="filterDrivers()"/>
+    <select class="sort-select" id="driverSort" onchange="filterDrivers()">
+      <option value="risk-desc">Risk: High → Low</option>
+      <option value="risk-asc">Risk: Low → High</option>
+      <option value="name">Name A–Z</option>
+      <option value="speed">Max Speed ↓</option>
+    </select>
+  </div>
+
+  <div class="data-table-wrap">
+    <table>
+      <thead><tr>
+        <th>#</th><th>Driver</th><th>Hub</th><th>Exp</th>
+        <th>Risk Score</th><th>Speed Viol%</th><th>Hard Brake%</th>
+        <th>Max Speed</th><th>Rating</th><th></th>
+      </tr></thead>
+      <tbody id="driverTableBody"></tbody>
+    </table>
+  </div>
+
+  <div class="chart-row">
+    <div class="chart-card full">
+      <div class="chart-title">Risk Score — All 30 Drivers</div>
+      <div class="chart-sub">Ranked from highest to lowest risk. Green = safe, amber = moderate, red = high risk.</div>
+      <canvas id="c-allrisk"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Risk Component Breakdown — Top 10</div>
+      <div class="chart-sub">Stacked weighted contribution of each factor.</div>
+      <canvas id="c-riskcomp"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Experience vs Risk Score</div>
+      <div class="chart-sub">Does more license experience correlate with safer driving?</div>
+      <canvas id="c-expvsr"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ VEHICLE HEALTH ═══════ -->
+<div class="page" id="page-vehicles">
+
+  <h1 class="section-title">Vehicle Health Status Dashboard</h1>
+  <p class="section-desc">Identifies vehicles showing signs of mechanical wear or irregular sensor signatures that may need maintenance, using vibration, gyro stability, service records, and mileage.</p>
+
+  <div class="method green-m">
+    <div class="method-label green">📐 Scoring Methodology — Health Score (0 = critical, 100 = excellent)</div>
+    <ul class="method-list">
+      <li class="green"><strong>Vibration (25%)</strong> — Std dev of Accel_Z from 1g; higher = rougher ride / worn suspension</li>
+      <li class="green"><strong>Service Overdue (25%)</strong> — Days since last service; &gt;30d = penalty, &gt;90d = critical</li>
+      <li class="green"><strong>Gyro Instability (15%)</strong> — Mean gyro vector magnitude; persistent rotation = frame/wheel anomaly</li>
+      <li class="green"><strong>Odometer (15%)</strong> — Normalized km vs fleet max; higher = more cumulative wear</li>
+      <li class="green"><strong>Vehicle Age (10%)</strong> — Older manufacture year = higher baseline wear</li>
+      <li class="green"><strong>Harsh Events (10%)</strong> — % of minutes with multi-axis IMU spikes on this vehicle</li>
+    </ul>
+  </div>
+
+  <div class="kpi-row" id="vehicleKPIs"></div>
+
+  <div class="search-bar">
+    <input class="search-input" id="vehicleSearch" placeholder="Search by ID, make, or model…" oninput="filterVehicles()"/>
+  </div>
+
+  <div class="veh-list" id="vehList"></div>
+
+  <div class="chart-row">
+    <div class="chart-card">
+      <div class="chart-title">Days Since Last Service</div>
+      <div class="chart-sub">Red = &gt;90 days (critical), amber = &gt;60 days (due), green = on schedule.</div>
+      <canvas id="c-service"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Vibration Level (Accel_Z Std Dev)</div>
+      <div class="chart-sub">Higher deviation from 1g = more mechanical roughness.</div>
+      <canvas id="c-vib"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Odometer vs Health Score</div>
+      <div class="chart-sub">Does higher mileage predict lower vehicle health?</div>
+      <canvas id="c-odohealth"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Average Health by Manufacturer</div>
+      <div class="chart-sub">Which makes hold up best in fleet operations?</div>
+      <canvas id="c-makehealth"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ ASSUMPTIONS & OTHER USES ═══════ -->
+<div class="page" id="page-notes">
+
+  <h1 class="section-title">Assumptions</h1>
+  <p class="section-desc">All explicit assumptions used in the scoring models, with justifications.</p>
+
+  <table class="assume-table">
+    <thead><tr><th>Parameter</th><th>Value</th><th>Rationale</th></tr></thead>
+    <tbody>
+      <tr><td>Speed limit</td><td>60 km/h</td><td>Karnataka Motor Vehicles Rules — urban two-wheeler limit in Bengaluru</td></tr>
+      <tr><td>Hard braking</td><td>Accel_X &lt; −0.3g</td><td>Industry-standard telematics harsh deceleration threshold</td></tr>
+      <tr><td>Sharp turn</td><td>|Accel_Y| &gt; 0.3g</td><td>Lateral g-force indicating aggressive cornering or lane change</td></tr>
+      <tr><td>Yaw spike</td><td>|Gyro_Z| &gt; 10 dps</td><td>Sudden yaw rotation threshold for abrupt steering input</td></tr>
+      <tr><td>Normal vibration</td><td>Accel_Z ≈ 1g</td><td>Gravity baseline; std dev from 1g measures mechanical vibration</td></tr>
+      <tr><td>Service interval</td><td>60 days</td><td>Standard for delivery two-wheelers in Indian fleet operations</td></tr>
+      <tr><td>Night hours</td><td>21:00–05:59</td><td>Post-sunset / pre-sunrise increased collision risk window</td></tr>
+      <tr><td>IMU orientation</td><td>Consistent per driver</td><td>Phone mount assumed fixed; axis directions consistent across trips</td></tr>
+      <tr><td>Telemetry interval</td><td>1 row = 1 minute</td><td>Per dataset specification; used for event rate calculations</td></tr>
+    </tbody>
+  </table>
+
+  <h1 class="section-title" style="margin-top:3rem;">Other Proposed Uses for This Dataset</h1>
+  <p class="section-desc">Beyond the two dashboards, this dataset can power several additional analytics products.</p>
+
+  <div class="uses-list">
+    <div class="use-card"><div class="use-icon">📦</div><div class="use-title">ETA Prediction</div><div class="use-desc">Per-minute GPS + speed data can train ML models to predict delivery arrival times based on real traffic patterns per hub and time-of-day.</div></div>
+    <div class="use-card"><div class="use-icon">🛣️</div><div class="use-title">Route Optimisation</div><div class="use-desc">Lat/lon traces reveal actual routes vs optimal paths. Clustering trips can surface high-congestion zones per time window.</div></div>
+    <div class="use-card"><div class="use-icon">💰</div><div class="use-title">Fuel / Battery Cost Modelling</div><div class="use-desc">Speed profiles + distance enable per-trip fuel estimates. Identify high-cost drivers or inefficient routes.</div></div>
+    <div class="use-card"><div class="use-icon">🧠</div><div class="use-title">Targeted Safety Training</div><div class="use-desc">Cluster drivers by behavioural signature (braking vs speeding vs yaw) to personalise training interventions.</div></div>
+    <div class="use-card"><div class="use-icon">🔮</div><div class="use-title">Predictive Maintenance ML</div><div class="use-desc">IMU signatures can train anomaly-detection models to flag vehicles for service before breakdown occurs.</div></div>
+    <div class="use-card"><div class="use-icon">📜</div><div class="use-title">Insurance Telematics (UBI)</div><div class="use-desc">Risk scores from actual driving data are ideal for usage-based insurance pricing, replacing age-based proxies.</div></div>
+  </div>
+</div>
+
+</div><!-- end content -->
+
+<!-- DETAIL MODAL -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
+  <div class="detail-modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-name" id="m-name">—</div>
+    <div class="modal-sub" id="m-sub">—</div>
+    <canvas id="m-radar" style="max-height:260px;margin-bottom:1.5rem;"></canvas>
+    <div class="modal-grid" id="m-stats"></div>
+    <div class="bar-section">
+      <div class="bar-section-title">Risk Factor Scores (each 0–100)</div>
+      <div class="bar-row"><div class="bar-label"><span>Speed Violations</span><span id="b-speed">—</span></div><div class="bar-track"><div class="bar-fill" id="bf-speed" style="background:var(--red);"></div></div></div>
+      <div class="bar-row"><div class="bar-label"><span>Hard Braking</span><span id="b-brake">—</span></div><div class="bar-track"><div class="bar-fill" id="bf-brake" style="background:var(--amber);"></div></div></div>
+      <div class="bar-row"><div class="bar-label"><span>Sharp Turns</span><span id="b-turn">—</span></div><div class="bar-track"><div class="bar-fill" id="bf-turn" style="background:#8b5cf6;"></div></div></div>
+      <div class="bar-row"><div class="bar-label"><span>Yaw Spikes</span><span id="b-yaw">—</span></div><div class="bar-track"><div class="bar-fill" id="bf-yaw" style="background:var(--accent);"></div></div></div>
+      <div class="bar-row"><div class="bar-label"><span>Night Driving</span><span id="b-night">—</span></div><div class="bar-track"><div class="bar-fill" id="bf-night" style="background:#6366f1;"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA = {"summary": {"total_drivers": 30, "total_vehicles": 30, "total_trips": 450, "total_telemetry_rows": 12987, "risky_drivers": 0, "vehicles_needing_attention": 3, "fleet_avg_risk_score": 6.5, "fleet_avg_health_score": 57.7}, "drivers": [{"Driver_ID": "D14", "Driver_Name": "Rajesh Subramaniam", "Age": 31, "Gender": "Male", "Experience_Years": 2, "Home_Hub": "Rajajinagar", "Primary_Vehicle_ID": "V14", "Total_Trips": 15, "Total_Minutes": 426, "Risk_Score": 20.7, "Speed_Score": 3.3, "Braking_Score": 39.9, "Lateral_Score": 8.6, "Yaw_Score": 36.0, "Night_Score": 40.0, "Speed_Violation_Pct": 1.6, "Hard_Brake_Pct": 8.0, "Sharp_Turn_Pct": 2.6, "Yaw_Spike_Pct": 5.4, "Night_Trip_Pct": 20.0, "Max_Speed_kmph": 65.5, "Avg_Speed_kmph": 25.4, "Speed_Violations": 7, "Hard_Brakes": 34, "Sharp_Turns": 11, "Yaw_Spikes": 23, "Night_Trips": 3}, {"Driver_ID": "D03", "Driver_Name": "Vignesh Murugan", "Age": 35, "Gender": "Male", "Experience_Years": 1, "Home_Hub": "Bommanahalli", "Primary_Vehicle_ID": "V03", "Total_Trips": 15, "Total_Minutes": 482, "Risk_Score": 20.2, "Speed_Score": 0.8, "Braking_Score": 34.2, "Lateral_Score": 15.9, "Yaw_Score": 41.5, "Night_Score": 26.7, "Speed_Violation_Pct": 0.4, "Hard_Brake_Pct": 6.8, "Sharp_Turn_Pct": 4.8, "Yaw_Spike_Pct": 6.2, "Night_Trip_Pct": 13.3, "Max_Speed_kmph": 68.8, "Avg_Speed_kmph": 22.7, "Speed_Violations": 2, "Hard_Brakes": 33, "Sharp_Turns": 23, "Yaw_Spikes": 30, "Night_Trips": 2}, {"Driver_ID": "D24", "Driver_Name": "Lakshmi Iyer", "Age": 32, "Gender": "Female", "Experience_Years": 3, "Home_Hub": "Bellandur", "Primary_Vehicle_ID": "V24", "Total_Trips": 15, "Total_Minutes": 460, "Risk_Score": 16.3, "Speed_Score": 1.7, "Braking_Score": 28.3, "Lateral_Score": 13.8, "Yaw_Score": 36.2, "Night_Score": 26.7, "Speed_Violation_Pct": 0.9, "Hard_Brake_Pct": 5.7, "Sharp_Turn_Pct": 4.1, "Yaw_Spike_Pct": 5.4, "Night_Trip_Pct": 13.3, "Max_Speed_kmph": 69.3, "Avg_Speed_kmph": 26.6, "Speed_Violations": 4, "Hard_Brakes": 26, "Sharp_Turns": 19, "Yaw_Spikes": 25, "Night_Trips": 2}, {"Driver_ID": "D19", "Driver_Name": "Senthil Pillai", "Age": 39, "Gender": "Male", "Experience_Years": 1, "Home_Hub": "Attibele", "Primary_Vehicle_ID": "V19", "Total_Trips": 15, "Total_Minutes": 338, "Risk_Score": 15.0, "Speed_Score": 0.6, "Braking_Score": 23.7, "Lateral_Score": 11.8, "Yaw_Score": 39.4, "Night_Score": 13.3, "Speed_Violation_Pct": 0.3, "Hard_Brake_Pct": 4.7, "Sharp_Turn_Pct": 3.6, "Yaw_Spike_Pct": 5.9, "Night_Trip_Pct": 6.7, "Max_Speed_kmph": 63.3, "Avg_Speed_kmph": 24.6, "Speed_Violations": 1, "Hard_Brakes": 16, "Sharp_Turns": 12, "Yaw_Spikes": 20, "Night_Trips": 1}, {"Driver_ID": "D20", "Driver_Name": "Sathish Iyer", "Age": 24, "Gender": "Male", "Experience_Years": 3, "Home_Hub": "Attibele", "Primary_Vehicle_ID": "V20", "Total_Trips": 15, "Total_Minutes": 380, "Risk_Score": 13.6, "Speed_Score": 0.0, "Braking_Score": 27.6, "Lateral_Score": 7.0, "Yaw_Score": 31.6, "Night_Score": 26.7, "Speed_Violation_Pct": 0.0, "Hard_Brake_Pct": 5.5, "Sharp_Turn_Pct": 2.1, "Yaw_Spike_Pct": 4.7, "Night_Trip_Pct": 13.3, "Max_Speed_kmph": 49.9, "Avg_Speed_kmph": 24.7, "Speed_Violations": 0, "Hard_Brakes": 21, "Sharp_Turns": 8, "Yaw_Spikes": 18, "Night_Trips": 2}, {"Driver_ID": "D25", "Driver_Name": "Deepa Pillai", "Age": 40, "Gender": "Male", "Experience_Years": 4, "Home_Hub": "Rajajinagar", "Primary_Vehicle_ID": "V25", "Total_Trips": 15, "Total_Minutes": 439, "Risk_Score": 12.9, "Speed_Score": 0.0, "Braking_Score": 17.1, "Lateral_Score": 12.1, "Yaw_Score": 33.4, "Night_Score": 40.0, "Speed_Violation_Pct": 0.0, "Hard_Brake_Pct": 3.4, "Sharp_Turn_Pct": 3.6, "Yaw_Spike_Pct": 5.0, "Night_Trip_Pct": 20.0, "Max_Speed_kmph": 51.1, "Avg_Speed_kmph": 23.5, "Speed_Violations": 0, "Hard_Brakes": 15, "Sharp_Turns": 16, "Yaw_Spikes": 22, "Night_Trips": 3}, {"Driver_ID": "D23", "Driver_Name": "Kavya Pillai", "Age": 32, "Gender": "Male", "Experience_Years": 11, "Home_Hub": "Yeshwanthpur", "Primary_Vehicle_ID": "V23", "Total_Trips": 15, "Total_Minutes": 457, "Risk_Score": 10.3, "Speed_Score": 3.1, "Braking_Score": 33.9, "Lateral_Score": 8.8, "Yaw_Score": 37.9, "Night_Score": 13.3, "Speed_Violation_Pct": 1.5, "Hard_Brake_Pct": 6.8, "Sharp_Turn_Pct": 2.6, "Yaw_Spike_Pct": 5.7, "Night_Trip_Pct": 6.7, "Max_Speed_kmph": 70.2, "Avg_Speed_kmph": 24.2, "Speed_Violations": 7, "Hard_Brakes": 31, "Sharp_Turns": 12, "Yaw_Spikes": 26, "Night_Trips": 1}, {"Driver_ID": "D06", "Driver_Name": "Bhavani Raj", "Age": 34, "Gender": "Female", "Experience_Years": 14, "Home_Hub": "Electronic City", "Primary_Vehicle_ID": "V06", "Total_Trips": 15, "Total_Minutes": 470, "Risk_Score": 9.1, "Speed_Score": 3.0, "Braking_Score": 27.7, "Lateral_Score": 12.1, "Yaw_Score": 41.1, "Night_Score": 26.7, "Speed_Violation_Pct": 1.5, "Hard_Brake_Pct": 5.5, "Sharp_Turn_Pct": 3.6, "Yaw_Spike_Pct": 6.2, "Night_Trip_Pct": 13.3, "Max_Speed_kmph": 73.6, "Avg_Speed_kmph": 25.7, "Speed_Violations": 7, "Hard_Brakes": 26, "Sharp_Turns": 17, "Yaw_Spikes": 29, "Night_Trips": 2}, {"Driver_ID": "D04", "Driver_Name": "Ganesh Kannan", "Age": 30, "Gender": "Female", "Experience_Years": 1, "Home_Hub": "HSR Layout", "Primary_Vehicle_ID": "V04", "Total_Trips": 15, "Total_Minutes": 475, "Risk_Score": 8.4, "Speed_Score": 0.0, "Braking_Score": 7.4, "Lateral_Score": 9.8, "Yaw_Score": 35.1, "Night_Score": 0.0, "Speed_Violation_Pct": 0.0, "Hard_Brake_Pct": 1.5, "Sharp_Turn_Pct": 2.9, "Yaw_Spike_Pct": 5.3, "Night_Trip_Pct": 0.0, "Max_Speed_kmph": 51.6, "Avg_Speed_kmph": 24.5, "Speed_Violations": 0, "Hard_Brakes": 7, "Sharp_Turns": 14, "Yaw_Spikes": 25, "Night_Trips": 0}, {"Driver_ID": "D01", "Driver_Name": "Meena Iyer", "Age": 36, "Gender": "Male", "Experience_Years": 7, "Home_Hub": "Rajajinagar", "Primary_Vehicle_ID": "V01", "Total_Trips": 15, "Total_Minutes": 427, "Risk_Score": 8.1, "Speed_Score": 0.0, "Braking_Score": 17.6, "Lateral_Score": 10.1, "Yaw_Score": 35.9, "Night_Score": 13.3, "Speed_Violation_Pct": 0.0, "Hard_Brake_Pct": 3.5, "Sharp_Turn_Pct": 3.0, "Yaw_Spike_Pct": 5.4, "Night_Trip_Pct": 6.7, "Max_Speed_kmph": 54.4, "Avg_Speed_kmph": 25.2, "Speed_Violations": 0, "Hard_Brakes": 15, "Sharp_Turns": 13, "Yaw_Spikes": 23, "Night_Trips": 1}, {"Driver_ID": "D15", "Driver_Name": "Meena Velu", "Age": 24, "Gender": "Male", "Experience_Years": 7, "Home_Hub": "Bellandur", "Primary_Vehicle_ID": "V15", "Total_Trips": 15, "Total_Minutes": 479, "Risk_Score": 7.5, "Speed_Score": 0.0, "Braking_Score": 12.5, "Lateral_Score": 11.8, "Yaw_Score": 37.6, "Night_Score": 13.3, "Speed_Violation_Pct": 0.0, "Hard_Brake_Pct": 2.5, "Sharp_Turn_Pct": 3.5, "Yaw_Spike_Pct": 5.6, "Night_Trip_Pct": 6.7, "Max_Speed_kmph": 52.5, "Avg_Speed_kmph": 23.0, "Speed_Violations": 0, "Hard_Brakes": 12, "Sharp_Turns": 17, "Yaw_Spikes": 27, "Night_Trips": 1}, {"Driver_ID": "D12", "Driver_Name": "Praveen Murugan", "Age": 44, "Gender": "Female", "Experience_Years": 7, "Home_Hub": "HSR Layout", "Primary_Vehicle_ID": "V12", "Total_Trips": 15, "Total_Minutes": 360, "Risk_Score": 7.3, "Speed_Score": 1.7, "Braking_Score": 19.4, "Lateral_Score": 8.3, "Yaw_Score": 35.2, "Night_Score": 0.0, "Speed_Violation_Pct": 0.8, "Hard_Brake_Pct": 3.9, "Sharp_Turn_Pct": 2.5, "Yaw_Spike_Pct": 5.3, "Night_Trip_Pct": 0.0, "Max_Speed_kmph": 64.5, "Avg_Speed_kmph": 23.8, "Speed_Violations": 3, "Hard_Brakes": 14, "Sharp_Turns": 9, "Yaw_Spikes": 19, "Night_Trips": 0}, {"Driver_ID": "D27", "Driver_Name": "Arun Chandran", "Age": 34, "Gender": "Male", "Experience_Years": 2, "Home_Hub": "Rajajinagar", "Primary_Vehicle_ID": "V27", "Total_Trips": 15, "Total_Minutes": 366, "Risk_Score": 7.2, "Speed_Score": 0.0, "Braking_Score": 8.2, "Lateral_Score": 7.3, "Yaw_Score": 25.5, "Night_Score": 13.3, "Speed_Violation_Pct": 0.0, "Hard_Brake_Pct": 1.6, "Sharp_Turn_Pct": 2.2, "Yaw_Spike_Pct": 3.8, "Night_Trip_Pct": 6.7, "Max_Speed_kmph": 51.3, "Avg_Speed_kmph": 23.2, "Speed_Violations": 0, "Hard_Brakes": 6, "Sharp_Turns": 8, "Yaw_Spikes": 14, "Night_Trips": 1}, {"Driver_ID": "D17", "Driver_Name": "Arun Subramaniam", "Age": 32, "Gender": "Male", "Experience_Years": 11, "Home_Hub": "Electronic City", "Primary_Vehicle_ID": "V17", "Total_Trips": 15, "Total_Minutes": 438, "Risk_Score": 6.7, "Speed_Score": 0.0, "Braking_Score": 22.8, "Lateral_Score": 9.1, "Yaw_Score": 28.9, "Night_Score": 26.7, "Speed_Violation_Pct": 0.0, "Hard_Brake_Pct": 4.6, "Sharp_Turn_Pct": 2.7, "Yaw_Spike_Pct": 4.3, "Night_Trip_Pct": 13.3, "Max_Speed_kmph": 52.0, "Avg_Speed_kmph": 25.6, "Speed_Violations": 0, "Hard_Brakes": 20, "Sharp_Turns": 12, "Yaw_Spikes": 19, "Night_Trips": 2}, {"Driver_ID": "D02", "Driver_Name": "Senthil Nair", "Age": 36, "Gender": "Male", "Experience_Years": 2, "Home_Hub": "HSR Layout", "Primary_Vehicle_ID": "V02", "Total_Trips": 15, "Total_Minutes": 402, "Risk_Score": 6.0, "Speed_Score": 0.0, "Braking_Score": 14.9, "Lateral_Score": 2.5, "Yaw_Score": 21.6, "Night_Score": 0.0, "Speed_Violation_Pct": 0.0, "Hard_Brake_Pct": 3.0, "Sharp_Turn_Pct": 0.7, "Yaw_Spike_Pct": 3.2, "Night_Trip_Pct": 0.0, "Max_Speed_kmph": 50.9, "Avg_Speed_kmph": 22.1, "Speed_Violations": 0, "Hard_Brakes": 12, "Sharp_Turns": 3, "Yaw_Spikes": 13, "Night_Trips": 0}, {"Driver_ID": "D22", "Driver_Name": "Priya Iyer", "Age": 35, "Gender": "Male", "Experience_Years": 3, "Home_Hub": "MG Road", "Primary_Vehicle_ID": "V22", "Total_Trips": 15, "Total_Minutes": 458, "Risk_Score": 5.9, "Speed_Score": 0.0, "Braking_Score": 7.6, "Lateral_Score": 2.9, "Yaw_Score": 10.2, "Night_Score": 40.0, "Speed_Violation_Pct": 0.0, "Hard_Brake_Pct": 1.5, "Sharp_Turn_Pct": 0.9, "Yaw_Spike_Pct": 1.5, "Night_Trip_Pct": 20.0, "Max_Speed_kmph": 42.8, "Avg_Speed_kmph": 22.5, "Speed_Violations": 0, "Hard_Brakes": 7, "Sharp_Turns": 4, "Yaw_Spikes": 7, "Night_Trips": 3}, {"Driver_ID": "D30", "Driver_Name": "Gokul Velu", "Age": 26, "Gender": "Male", "Experience_Years": 2, "Home_Hub": "Bellandur", "Primary_Vehicle_ID": "V30", "Total_Trips": 15, "Total_Minutes": 474, "Risk_Score": 4.8, "Speed_Score": 0.0, "Braking_Score": 10.5, "Lateral_Score": 4.2, "Yaw_Score": 18.3, "Night_Score": 0.0, "Speed_Violation_Pct": 0.0, "Hard_Brake_Pct": 2.1, "Sharp_Turn_Pct": 1.3, "Yaw_Spike_Pct": 2.7, "Night_Trip_Pct": 0.0, "Max_Speed_kmph": 58.0, "Avg_Speed_kmph": 22.0, "Speed_Violations": 0, "Hard_Brakes": 10, "Sharp_Turns": 6, "Yaw_Spikes": 13, "Night_Trips": 0}, {"Driver_ID": "D10", "Driver_Name": "Mohan Pillai", "Age": 31, "Gender": "Male", "Experience_Years": 4, "Home_Hub": "Yeshwanthpur", "Primary_Vehicle_ID": "V10", "Total_Trips": 15, "Total_Minutes": 470, "Risk_Score": 4.5, "Speed_Score": 0.0, "Braking_Score": 9.6, "Lateral_Score": 4.3, "Yaw_Score": 18.4, "Night_Score": 13.3, "Speed_Violation_Pct": 0.0, "Hard_Brake_Pct": 1.9, "Sharp_Turn_Pct": 1.3, "Yaw_Spike_Pct": 2.8, "Night_Trip_Pct": 6.7, "Max_Speed_kmph": 56.7, "Avg_Speed_kmph": 21.4, "Speed_Violations": 0, "Hard_Brakes": 9, "Sharp_Turns": 6, "Yaw_Spikes": 13, "Night_Trips": 1}, {"Driver_ID": "D28", "Driver_Name": "Praveen Iyer", "Age": 37, "Gender": "Male", "Experience_Years": 4, "Home_Hub": "MG Road", "Primary_Vehicle_ID": "V28", "Total_Trips": 15, "Total_Minutes": 400, "Risk_Score": 4.0, "Speed_Score": 0.0, "Braking_Score": 6.2, "Lateral_Score": 3.3, "Yaw_Score": 13.3, "Night_Score": 26.7, "Speed_Violation_Pct": 0.0, "Hard_Brake_Pct": 1.2, "Sharp_Turn_Pct": 1.0, "Yaw_Spike_Pct": 2.0, "Night_Trip_Pct": 13.3, "Max_Speed_kmph": 42.1, "Avg_Speed_kmph": 22.3, "Speed_Violations": 0, "Hard_Brakes": 5, "Sharp_Turns": 4, "Yaw_Spikes": 8, "Night_Trips": 2}, {"Driver_ID": "D08", "Driver_Name": "Arun Raj", "Age": 23, "Gender": "Male", "Experience_Years": 10, "Home_Hub": "Bellandur", "Primary_Vehicle_ID": "V08", "Total_Trips": 15, "Total_Minutes": 466, "Risk_Score": 3.6, "Speed_Score": 0.0, "Braking_Score": 18.2, "Lateral_Score": 7.2, "Yaw_Score": 22.9, "Night_Score": 13.3, "Speed_Violation_Pct": 0.0, "Hard_Brake_Pct": 3.6, "Sharp_Turn_Pct": 2.1, "Yaw_Spike_Pct": 3.4, "Night_Trip_Pct": 6.7, "Max_Speed_kmph": 56.3, "Avg_Speed_kmph": 23.9, "Speed_Violations": 0, "Hard_Brakes": 17, "Sharp_Turns": 10, "Yaw_Spikes": 16, "Night_Trips": 1}, {"Driver_ID": "D07", "Driver_Name": "Kavya Pillai", "Age": 31, "Gender": "Male", "Experience_Years": 12, "Home_Hub": "Bommanahalli", "Primary_Vehicle_ID": "V07", "Total_Trips": 15, "Total_Minutes": 462, "Risk_Score": 2.1, "Speed_Score": 0.0, "Braking_Score": 14.1, "Lateral_Score": 9.4, "Yaw_Score": 26.0, "Night_Score": 13.3, "Speed_Violation_Pct": 0.0, "Hard_Brake_Pct": 2.8, "Sharp_Turn_Pct": 2.8, "Yaw_Spike_Pct": 3.9, "Night_Trip_Pct": 6.7, "Max_Speed_kmph": 54.4, "Avg_Speed_kmph": 24.7, "Speed_Violations": 0, "Hard_Brakes": 13, "Sharp_Turns": 13, "Yaw_Spikes": 18, "Night_Trips": 1}, {"Driver_ID": "D05", "Driver_Name": "Manoj Kumar", "Age": 41, "Gender": "Male", "Experience_Years": 4, "Home_Hub": "Rajajinagar", "Primary_Vehicle_ID": "V05", "Total_Trips": 15, "Total_Minutes": 482, "Risk_Score": 1.0, "Speed_Score": 0.0, "Braking_Score": 3.1, "Lateral_Score": 4.8, "Yaw_Score": 13.8, "Night_Score": 0.0, "Speed_Violation_Pct": 0.0, "Hard_Brake_Pct": 0.6, "Sharp_Turn_Pct": 1.5, "Yaw_Spike_Pct": 2.1, "Night_Trip_Pct": 0.0, "Max_Speed_kmph": 47.8, "Avg_Speed_kmph": 23.1, "Speed_Violations": 0, "Hard_Brakes": 3, "Sharp_Turns": 7, "Yaw_Spikes": 10, "Night_Trips": 0}, {"Driver_ID": "D16", "Driver_Name": "Sathish Chandran", "Age": 34, "Gender": "Male", "Experience_Years": 7, "Home_Hub": "Bommanahalli", "Primary_Vehicle_ID": "V16", "Total_Trips": 15, "Total_Minutes": 459, "Risk_Score": 0.2, "Speed_Score": 0.0, "Braking_Score": 6.5, "Lateral_Score": 5.8, "Yaw_Score": 16.0, "Night_Score": 0.0, "Speed_Violation_Pct": 0.0, "Hard_Brake_Pct": 1.3, "Sharp_Turn_Pct": 1.7, "Yaw_Spike_Pct": 2.4, "Night_Trip_Pct": 0.0, "Max_Speed_kmph": 39.9, "Avg_Speed_kmph": 25.0, "Speed_Violations": 0, "Hard_Brakes": 6, "Sharp_Turns": 8, "Yaw_Spikes": 11, "Night_Trips": 0}, {"Driver_ID": "D21", "Driver_Name": "Vignesh Raj", "Age": 28, "Gender": "Male", "Experience_Years": 13, "Home_Hub": "MG Road", "Primary_Vehicle_ID": "V21", "Total_Trips": 15, "Total_Minutes": 472, "Risk_Score": 0.1, "Speed_Score": 0.0, "Braking_Score": 11.7, "Lateral_Score": 9.9, "Yaw_Score": 29.7, "Night_Score": 0.0, "Speed_Violation_Pct": 0.0, "Hard_Brake_Pct": 2.3, "Sharp_Turn_Pct": 3.0, "Yaw_Spike_Pct": 4.4, "Night_Trip_Pct": 0.0, "Max_Speed_kmph": 59.5, "Avg_Speed_kmph": 24.8, "Speed_Violations": 0, "Hard_Brakes": 11, "Sharp_Turns": 14, "Yaw_Spikes": 21, "Night_Trips": 0}, {"Driver_ID": "D09", "Driver_Name": "Rajesh Raj", "Age": 42, "Gender": "Male", "Experience_Years": 8, "Home_Hub": "Bellandur", "Primary_Vehicle_ID": "V09", "Total_Trips": 15, "Total_Minutes": 396, "Risk_Score": 0, "Speed_Score": 0.0, "Braking_Score": 7.6, "Lateral_Score": 1.7, "Yaw_Score": 6.7, "Night_Score": 13.3, "Speed_Violation_Pct": 0.0, "Hard_Brake_Pct": 1.5, "Sharp_Turn_Pct": 0.5, "Yaw_Spike_Pct": 1.0, "Night_Trip_Pct": 6.7, "Max_Speed_kmph": 40.7, "Avg_Speed_kmph": 25.8, "Speed_Violations": 0, "Hard_Brakes": 6, "Sharp_Turns": 2, "Yaw_Spikes": 4, "Night_Trips": 1}, {"Driver_ID": "D11", "Driver_Name": "Mohan Iyer", "Age": 35, "Gender": "Male", "Experience_Years": 6, "Home_Hub": "Yeshwanthpur", "Primary_Vehicle_ID": "V11", "Total_Trips": 15, "Total_Minutes": 357, "Risk_Score": 0, "Speed_Score": 0.0, "Braking_Score": 2.8, "Lateral_Score": 1.9, "Yaw_Score": 7.5, "Night_Score": 0.0, "Speed_Violation_Pct": 0.0, "Hard_Brake_Pct": 0.6, "Sharp_Turn_Pct": 0.6, "Yaw_Spike_Pct": 1.1, "Night_Trip_Pct": 0.0, "Max_Speed_kmph": 41.6, "Avg_Speed_kmph": 25.6, "Speed_Violations": 0, "Hard_Brakes": 2, "Sharp_Turns": 2, "Yaw_Spikes": 4, "Night_Trips": 0}, {"Driver_ID": "D13", "Driver_Name": "Meena Kannan", "Age": 39, "Gender": "Female", "Experience_Years": 14, "Home_Hub": "Electronic City", "Primary_Vehicle_ID": "V13", "Total_Trips": 15, "Total_Minutes": 431, "Risk_Score": 0, "Speed_Score": 0.5, "Braking_Score": 12.8, "Lateral_Score": 7.0, "Yaw_Score": 24.7, "Night_Score": 13.3, "Speed_Violation_Pct": 0.2, "Hard_Brake_Pct": 2.6, "Sharp_Turn_Pct": 2.1, "Yaw_Spike_Pct": 3.7, "Night_Trip_Pct": 6.7, "Max_Speed_kmph": 61.8, "Avg_Speed_kmph": 24.6, "Speed_Violations": 1, "Hard_Brakes": 11, "Sharp_Turns": 9, "Yaw_Spikes": 16, "Night_Trips": 1}, {"Driver_ID": "D18", "Driver_Name": "Revathi Raj", "Age": 35, "Gender": "Male", "Experience_Years": 9, "Home_Hub": "Yeshwanthpur", "Primary_Vehicle_ID": "V18", "Total_Trips": 15, "Total_Minutes": 400, "Risk_Score": 0, "Speed_Score": 0.0, "Braking_Score": 6.2, "Lateral_Score": 4.2, "Yaw_Score": 13.3, "Night_Score": 13.3, "Speed_Violation_Pct": 0.0, "Hard_Brake_Pct": 1.2, "Sharp_Turn_Pct": 1.2, "Yaw_Spike_Pct": 2.0, "Night_Trip_Pct": 6.7, "Max_Speed_kmph": 40.1, "Avg_Speed_kmph": 24.9, "Speed_Violations": 0, "Hard_Brakes": 5, "Sharp_Turns": 5, "Yaw_Spikes": 8, "Night_Trips": 1}, {"Driver_ID": "D26", "Driver_Name": "Anitha Chandran", "Age": 31, "Gender": "Male", "Experience_Years": 6, "Home_Hub": "Attibele", "Primary_Vehicle_ID": "V26", "Total_Trips": 15, "Total_Minutes": 419, "Risk_Score": 0.0, "Speed_Score": 0.0, "Braking_Score": 4.8, "Lateral_Score": 4.8, "Yaw_Score": 14.3, "Night_Score": 0.0, "Speed_Violation_Pct": 0.0, "Hard_Brake_Pct": 1.0, "Sharp_Turn_Pct": 1.4, "Yaw_Spike_Pct": 2.1, "Night_Trip_Pct": 0.0, "Max_Speed_kmph": 43.3, "Avg_Speed_kmph": 24.2, "Speed_Violations": 0, "Hard_Brakes": 4, "Sharp_Turns": 6, "Yaw_Spikes": 9, "Night_Trips": 0}, {"Driver_ID": "D29", "Driver_Name": "Rajesh Subramaniam", "Age": 43, "Gender": "Male", "Experience_Years": 11, "Home_Hub": "Attibele", "Primary_Vehicle_ID": "V29", "Total_Trips": 15, "Total_Minutes": 442, "Risk_Score": 0, "Speed_Score": 0.0, "Braking_Score": 6.8, "Lateral_Score": 2.3, "Yaw_Score": 9.0, "Night_Score": 13.3, "Speed_Violation_Pct": 0.0, "Hard_Brake_Pct": 1.4, "Sharp_Turn_Pct": 0.7, "Yaw_Spike_Pct": 1.4, "Night_Trip_Pct": 6.7, "Max_Speed_kmph": 47.0, "Avg_Speed_kmph": 26.5, "Speed_Violations": 0, "Hard_Brakes": 6, "Sharp_Turns": 3, "Yaw_Spikes": 6, "Night_Trips": 1}], "vehicles": [{"Vehicle_ID": "V02", "Make": "TVS", "Model": "Raider", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2021, "Registration_Date": "2021-03-26", "Odometer_KM": 46601, "Last_Service_Date": "2026-05-06", "Days_Since_Service": 99, "Health_Score": 16.0, "Vibration_Std": 0.165, "Gyro_Mag_Mean": 4.92, "Harsh_Event_Pct": 14.9, "Service_Score": 100, "Odo_Score": 100.0, "Vib_Score": 100, "Maintenance_Flag": "CRITICAL", "Vehicle_Age_Years": 5}, {"Vehicle_ID": "V12", "Make": "TVS", "Model": "Ntorq", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2020, "Registration_Date": "2020-04-09", "Odometer_KM": 31966, "Last_Service_Date": "2026-06-09", "Days_Since_Service": 65, "Health_Score": 37.7, "Vibration_Std": 0.0681, "Gyro_Mag_Mean": 5.33, "Harsh_Event_Pct": 12.2, "Service_Score": 58.3, "Odo_Score": 68.6, "Vib_Score": 68.1, "Maintenance_Flag": "DUE", "Vehicle_Age_Years": 6}, {"Vehicle_ID": "V19", "Make": "TVS", "Model": "Ntorq", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2021, "Registration_Date": "2021-12-09", "Odometer_KM": 17247, "Last_Service_Date": "2026-06-19", "Days_Since_Service": 55, "Health_Score": 38.4, "Vibration_Std": 0.1168, "Gyro_Mag_Mean": 5.28, "Harsh_Event_Pct": 18.2, "Service_Score": 41.7, "Odo_Score": 37.0, "Vib_Score": 100, "Maintenance_Flag": "MONITOR", "Vehicle_Age_Years": 5}, {"Vehicle_ID": "V23", "Make": "Suzuki", "Model": "Access", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2021, "Registration_Date": "2021-01-27", "Odometer_KM": 17821, "Last_Service_Date": "2026-06-16", "Days_Since_Service": 58, "Health_Score": 38.5, "Vibration_Std": 0.0932, "Gyro_Mag_Mean": 5.57, "Harsh_Event_Pct": 17.3, "Service_Score": 46.7, "Odo_Score": 38.2, "Vib_Score": 93.2, "Maintenance_Flag": "MONITOR", "Vehicle_Age_Years": 5}, {"Vehicle_ID": "V01", "Make": "Yamaha", "Model": "Ray ZR", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2021, "Registration_Date": "2021-04-23", "Odometer_KM": 22820, "Last_Service_Date": "2026-06-08", "Days_Since_Service": 66, "Health_Score": 39.7, "Vibration_Std": 0.0773, "Gyro_Mag_Mean": 5.44, "Harsh_Event_Pct": 11.2, "Service_Score": 60.0, "Odo_Score": 49.0, "Vib_Score": 77.3, "Maintenance_Flag": "DUE", "Vehicle_Age_Years": 5}, {"Vehicle_ID": "V10", "Make": "TVS", "Model": "Ntorq", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2019, "Registration_Date": "2019-01-23", "Odometer_KM": 30162, "Last_Service_Date": "2026-07-01", "Days_Since_Service": 43, "Health_Score": 42.8, "Vibration_Std": 0.0906, "Gyro_Mag_Mean": 4.59, "Harsh_Event_Pct": 7.6, "Service_Score": 21.7, "Odo_Score": 64.7, "Vib_Score": 90.6, "Maintenance_Flag": "OK", "Vehicle_Age_Years": 7}, {"Vehicle_ID": "V15", "Make": "TVS", "Model": "Ntorq", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2023, "Registration_Date": "2023-12-04", "Odometer_KM": 20041, "Last_Service_Date": "2026-06-19", "Days_Since_Service": 55, "Health_Score": 46.1, "Vibration_Std": 0.089, "Gyro_Mag_Mean": 5.35, "Harsh_Event_Pct": 10.2, "Service_Score": 41.7, "Odo_Score": 43.0, "Vib_Score": 89.0, "Maintenance_Flag": "OK", "Vehicle_Age_Years": 3}, {"Vehicle_ID": "V25", "Make": "Suzuki", "Model": "Access", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2024, "Registration_Date": "2024-11-01", "Odometer_KM": 26280, "Last_Service_Date": "2026-07-03", "Days_Since_Service": 41, "Health_Score": 49.4, "Vibration_Std": 0.0961, "Gyro_Mag_Mean": 5.15, "Harsh_Event_Pct": 12.5, "Service_Score": 18.3, "Odo_Score": 56.4, "Vib_Score": 96.1, "Maintenance_Flag": "OK", "Vehicle_Age_Years": 2}, {"Vehicle_ID": "V24", "Make": "Honda", "Model": "Activa", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2025, "Registration_Date": "2025-09-22", "Odometer_KM": 22345, "Last_Service_Date": "2026-06-20", "Days_Since_Service": 54, "Health_Score": 50.0, "Vibration_Std": 0.0802, "Gyro_Mag_Mean": 5.2, "Harsh_Event_Pct": 14.9, "Service_Score": 40.0, "Odo_Score": 47.9, "Vib_Score": 80.2, "Maintenance_Flag": "OK", "Vehicle_Age_Years": 1}, {"Vehicle_ID": "V13", "Make": "Bajaj", "Model": "Pulsar", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2025, "Registration_Date": "2025-06-14", "Odometer_KM": 22372, "Last_Service_Date": "2026-07-01", "Days_Since_Service": 43, "Health_Score": 51.8, "Vibration_Std": 0.1025, "Gyro_Mag_Mean": 4.73, "Harsh_Event_Pct": 10.4, "Service_Score": 21.7, "Odo_Score": 48.0, "Vib_Score": 100, "Maintenance_Flag": "OK", "Vehicle_Age_Years": 1}, {"Vehicle_ID": "V26", "Make": "Bajaj", "Model": "Pulsar", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2024, "Registration_Date": "2024-04-22", "Odometer_KM": 22871, "Last_Service_Date": "2026-06-28", "Days_Since_Service": 46, "Health_Score": 54.0, "Vibration_Std": 0.0907, "Gyro_Mag_Mean": 3.99, "Harsh_Event_Pct": 4.9, "Service_Score": 26.7, "Odo_Score": 49.1, "Vib_Score": 90.7, "Maintenance_Flag": "OK", "Vehicle_Age_Years": 2}, {"Vehicle_ID": "V28", "Make": "Ola", "Model": "S1", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2023, "Registration_Date": "2023-04-12", "Odometer_KM": 17021, "Last_Service_Date": "2026-06-23", "Days_Since_Service": 51, "Health_Score": 57.2, "Vibration_Std": 0.0715, "Gyro_Mag_Mean": 4.06, "Harsh_Event_Pct": 3.8, "Service_Score": 35.0, "Odo_Score": 36.5, "Vib_Score": 71.5, "Maintenance_Flag": "OK", "Vehicle_Age_Years": 3}, {"Vehicle_ID": "V14", "Make": "TVS", "Model": "Raider", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2019, "Registration_Date": "2019-03-07", "Odometer_KM": 5270, "Last_Service_Date": "2026-07-26", "Days_Since_Service": 18, "Health_Score": 57.4, "Vibration_Std": 0.0689, "Gyro_Mag_Mean": 5.07, "Harsh_Event_Pct": 18.2, "Service_Score": 0.0, "Odo_Score": 11.3, "Vib_Score": 68.9, "Maintenance_Flag": "OK", "Vehicle_Age_Years": 7}, {"Vehicle_ID": "V16", "Make": "TVS", "Model": "Raider", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2023, "Registration_Date": "2023-10-16", "Odometer_KM": 22089, "Last_Service_Date": "2026-06-30", "Days_Since_Service": 44, "Health_Score": 57.6, "Vibration_Std": 0.0724, "Gyro_Mag_Mean": 4.2, "Harsh_Event_Pct": 5.2, "Service_Score": 23.3, "Odo_Score": 47.4, "Vib_Score": 72.4, "Maintenance_Flag": "OK", "Vehicle_Age_Years": 3}, {"Vehicle_ID": "V27", "Make": "Bajaj", "Model": "Pulsar", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2022, "Registration_Date": "2022-10-17", "Odometer_KM": 14098, "Last_Service_Date": "2026-07-10", "Days_Since_Service": 34, "Health_Score": 61.4, "Vibration_Std": 0.0686, "Gyro_Mag_Mean": 4.81, "Harsh_Event_Pct": 9.0, "Service_Score": 6.7, "Odo_Score": 30.3, "Vib_Score": 68.6, "Maintenance_Flag": "OK", "Vehicle_Age_Years": 4}, {"Vehicle_ID": "V08", "Make": "Hero", "Model": "Splendor", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2021, "Registration_Date": "2021-11-03", "Odometer_KM": 11444, "Last_Service_Date": "2026-07-12", "Days_Since_Service": 32, "Health_Score": 62.1, "Vibration_Std": 0.068, "Gyro_Mag_Mean": 4.44, "Harsh_Event_Pct": 9.2, "Service_Score": 3.3, "Odo_Score": 24.6, "Vib_Score": 68.0, "Maintenance_Flag": "OK", "Vehicle_Age_Years": 5}, {"Vehicle_ID": "V18", "Make": "Ola", "Model": "S1", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2019, "Registration_Date": "2019-06-04", "Odometer_KM": 9158, "Last_Service_Date": "2026-07-08", "Days_Since_Service": 36, "Health_Score": 63.3, "Vibration_Std": 0.0545, "Gyro_Mag_Mean": 4.06, "Harsh_Event_Pct": 4.5, "Service_Score": 10.0, "Odo_Score": 19.7, "Vib_Score": 54.5, "Maintenance_Flag": "OK", "Vehicle_Age_Years": 7}, {"Vehicle_ID": "V29", "Make": "TVS", "Model": "Raider", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2021, "Registration_Date": "2021-02-18", "Odometer_KM": 14495, "Last_Service_Date": "2026-07-10", "Days_Since_Service": 34, "Health_Score": 63.4, "Vibration_Std": 0.065, "Gyro_Mag_Mean": 3.82, "Harsh_Event_Pct": 4.8, "Service_Score": 6.7, "Odo_Score": 31.1, "Vib_Score": 65.0, "Maintenance_Flag": "OK", "Vehicle_Age_Years": 5}, {"Vehicle_ID": "V03", "Make": "Yamaha", "Model": "Ray ZR", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2022, "Registration_Date": "2022-11-07", "Odometer_KM": 14883, "Last_Service_Date": "2026-07-08", "Days_Since_Service": 36, "Health_Score": 63.9, "Vibration_Std": 0.0384, "Gyro_Mag_Mean": 5.39, "Harsh_Event_Pct": 18.3, "Service_Score": 10.0, "Odo_Score": 31.9, "Vib_Score": 38.4, "Maintenance_Flag": "OK", "Vehicle_Age_Years": 4}, {"Vehicle_ID": "V09", "Make": "Hero", "Model": "Splendor", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2020, "Registration_Date": "2020-01-26", "Odometer_KM": 14294, "Last_Service_Date": "2026-07-24", "Days_Since_Service": 20, "Health_Score": 65.9, "Vibration_Std": 0.0565, "Gyro_Mag_Mean": 3.63, "Harsh_Event_Pct": 4.7, "Service_Score": 0.0, "Odo_Score": 30.7, "Vib_Score": 56.5, "Maintenance_Flag": "OK", "Vehicle_Age_Years": 6}, {"Vehicle_ID": "V11", "Make": "Suzuki", "Model": "Access", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2020, "Registration_Date": "2020-05-17", "Odometer_KM": 11219, "Last_Service_Date": "2026-07-09", "Days_Since_Service": 35, "Health_Score": 66.5, "Vibration_Std": 0.0517, "Gyro_Mag_Mean": 3.75, "Harsh_Event_Pct": 2.8, "Service_Score": 8.3, "Odo_Score": 24.1, "Vib_Score": 51.7, "Maintenance_Flag": "OK", "Vehicle_Age_Years": 6}, {"Vehicle_ID": "V04", "Make": "Honda", "Model": "Activa", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2020, "Registration_Date": "2020-07-02", "Odometer_KM": 5533, "Last_Service_Date": "2026-07-19", "Days_Since_Service": 25, "Health_Score": 67.3, "Vibration_Std": 0.0491, "Gyro_Mag_Mean": 5.14, "Harsh_Event_Pct": 7.8, "Service_Score": 0.0, "Odo_Score": 11.9, "Vib_Score": 49.1, "Maintenance_Flag": "OK", "Vehicle_Age_Years": 6}, {"Vehicle_ID": "V07", "Make": "Hero", "Model": "Splendor", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2021, "Registration_Date": "2021-01-21", "Odometer_KM": 6030, "Last_Service_Date": "2026-07-14", "Days_Since_Service": 30, "Health_Score": 69.9, "Vibration_Std": 0.0465, "Gyro_Mag_Mean": 4.68, "Harsh_Event_Pct": 8.7, "Service_Score": 0.0, "Odo_Score": 12.9, "Vib_Score": 46.5, "Maintenance_Flag": "OK", "Vehicle_Age_Years": 5}, {"Vehicle_ID": "V30", "Make": "Bajaj", "Model": "Pulsar", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2022, "Registration_Date": "2022-07-07", "Odometer_KM": 5127, "Last_Service_Date": "2026-07-24", "Days_Since_Service": 20, "Health_Score": 70.2, "Vibration_Std": 0.0596, "Gyro_Mag_Mean": 4.21, "Harsh_Event_Pct": 5.9, "Service_Score": 0.0, "Odo_Score": 11.0, "Vib_Score": 59.6, "Maintenance_Flag": "OK", "Vehicle_Age_Years": 4}, {"Vehicle_ID": "V22", "Make": "Honda", "Model": "Activa", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2023, "Registration_Date": "2023-11-03", "Odometer_KM": 11264, "Last_Service_Date": "2026-07-26", "Days_Since_Service": 18, "Health_Score": 70.3, "Vibration_Std": 0.0623, "Gyro_Mag_Mean": 3.9, "Harsh_Event_Pct": 3.9, "Service_Score": 0.0, "Odo_Score": 24.2, "Vib_Score": 62.3, "Maintenance_Flag": "OK", "Vehicle_Age_Years": 3}, {"Vehicle_ID": "V17", "Make": "Ola", "Model": "S1", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2024, "Registration_Date": "2024-01-20", "Odometer_KM": 2639, "Last_Service_Date": "2026-07-13", "Days_Since_Service": 31, "Health_Score": 70.8, "Vibration_Std": 0.0618, "Gyro_Mag_Mean": 4.66, "Harsh_Event_Pct": 11.4, "Service_Score": 1.7, "Odo_Score": 5.7, "Vib_Score": 61.8, "Maintenance_Flag": "OK", "Vehicle_Age_Years": 2}, {"Vehicle_ID": "V20", "Make": "Yamaha", "Model": "Ray ZR", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2023, "Registration_Date": "2023-04-26", "Odometer_KM": 8533, "Last_Service_Date": "2026-07-23", "Days_Since_Service": 21, "Health_Score": 71.7, "Vibration_Std": 0.0432, "Gyro_Mag_Mean": 5.02, "Harsh_Event_Pct": 11.6, "Service_Score": 0.0, "Odo_Score": 18.3, "Vib_Score": 43.2, "Maintenance_Flag": "OK", "Vehicle_Age_Years": 3}, {"Vehicle_ID": "V05", "Make": "TVS", "Model": "Raider", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2025, "Registration_Date": "2025-02-25", "Odometer_KM": 2727, "Last_Service_Date": "2026-07-12", "Days_Since_Service": 32, "Health_Score": 73.4, "Vibration_Std": 0.0705, "Gyro_Mag_Mean": 4.01, "Harsh_Event_Pct": 3.7, "Service_Score": 3.3, "Odo_Score": 5.9, "Vib_Score": 70.5, "Maintenance_Flag": "OK", "Vehicle_Age_Years": 1}, {"Vehicle_ID": "V21", "Make": "TVS", "Model": "Raider", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2025, "Registration_Date": "2025-06-01", "Odometer_KM": 9558, "Last_Service_Date": "2026-07-17", "Days_Since_Service": 27, "Health_Score": 76.5, "Vibration_Std": 0.0425, "Gyro_Mag_Mean": 4.86, "Harsh_Event_Pct": 7.7, "Service_Score": 0.0, "Odo_Score": 20.5, "Vib_Score": 42.5, "Maintenance_Flag": "OK", "Vehicle_Age_Years": 1}, {"Vehicle_ID": "V06", "Make": "Ola", "Model": "S1", "Vehicle_Type": "Two-Wheeler (Scooter/Motorcycle)", "Manufacture_Year": 2025, "Registration_Date": "2025-03-25", "Odometer_KM": 3065, "Last_Service_Date": "2026-07-18", "Days_Since_Service": 26, "Health_Score": 76.9, "Vibration_Std": 0.035, "Gyro_Mag_Mean": 5.41, "Harsh_Event_Pct": 15.7, "Service_Score": 0.0, "Odo_Score": 6.6, "Vib_Score": 35.0, "Maintenance_Flag": "OK", "Vehicle_Age_Years": 1}], "hubs": [{"hub": "Rajajinagar", "avg_risk": 10.0, "driver_count": 5, "risky_count": 0}, {"hub": "Bommanahalli", "avg_risk": 7.5, "driver_count": 3, "risky_count": 0}, {"hub": "Attibele", "avg_risk": 7.2, "driver_count": 4, "risky_count": 0}, {"hub": "HSR Layout", "avg_risk": 7.2, "driver_count": 3, "risky_count": 0}, {"hub": "Bellandur", "avg_risk": 6.4, "driver_count": 5, "risky_count": 0}, {"hub": "Electronic City", "avg_risk": 5.3, "driver_count": 3, "risky_count": 0}, {"hub": "Yeshwanthpur", "avg_risk": 3.7, "driver_count": 4, "risky_count": 0}, {"hub": "MG Road", "avg_risk": 3.3, "driver_count": 3, "risky_count": 0}], "makes": [{"make": "Ola", "avg_health": 67.1, "count": 4}, {"make": "Hero", "avg_health": 66.0, "count": 3}, {"make": "Honda", "avg_health": 62.5, "count": 3}, {"make": "Bajaj", "avg_health": 59.3, "count": 4}, {"make": "Yamaha", "avg_health": 58.4, "count": 3}, {"make": "Suzuki", "avg_health": 51.5, "count": 3}, {"make": "TVS", "avg_health": 50.9, "count": 10}], "speed_distribution": {"labels": ["0-10", "10-20", "20-30", "30-40", "40-50", "50-60", "60+"], "values": [1622, 2439, 4987, 3076, 693, 137, 33]}};
+const drivers = DATA.drivers;
+const vehicles = DATA.vehicles;
+
+/* Nav */
+function goTo(name) {
+  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+/* Chart.js */
+Chart.defaults.color = '#9ca3af';
+Chart.defaults.borderColor = '#1f293d';
+Chart.defaults.font.family = 'Inter';
+var BL = '#3b82f6', GR = '#10b981', AM = '#f59e0b', RD = '#ef4444';
+var BLA = 'rgba(59,130,246,0.15)', GRA = 'rgba(16,185,129,0.15)', AMA = 'rgba(245,158,11,0.15)', RDA = 'rgba(239,68,68,0.15)';
+
+function mkC(id, type, labels, datasets, opts) {
+  opts = opts || {};
+  var el = document.getElementById(id);
+  if (!el) return null;
+  return new Chart(el, {
+    type: type, data: {labels: labels, datasets: datasets},
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: Object.assign({
+        legend: {labels: {font: {size: 11}, boxWidth: 12, padding: 12}},
+        tooltip: {backgroundColor: '#111827', borderColor: '#2d3a52', borderWidth: 1, titleFont: {size: 11}, bodyFont: {size: 10}, padding: 10, cornerRadius: 8}
+      }, opts.plugins || {}),
+      scales: opts.scales || {
+        x: {grid: {color: '#1f293d'}, ticks: {font: {size: 10}}},
+        y: {grid: {color: '#1f293d'}, ticks: {font: {size: 10}}}
+      }
+    }
+  });
+}
+
+function riskColor(s) { return s > 20 ? RD : s > 10 ? AM : GR; }
+function riskBadge(s) {
+  if (s > 20) return '<span class="badge badge-risky">⚠️ High Risk</span>';
+  if (s > 10) return '<span class="badge badge-mod">🟡 Moderate</span>';
+  return '<span class="badge badge-safe">✅ Safe</span>';
+}
+function healthColor(s) { return s >= 60 ? GR : s >= 40 ? AM : RD; }
+
+/* ═══ DRIVERS ═══ */
+var sortedD = drivers.slice().sort(function(a,b) { return b.Risk_Score - a.Risk_Score; });
+var safest = sortedD[sortedD.length - 1];
+var riskiest = sortedD[0];
+var avgRisk = (drivers.reduce(function(s,d) { return s + d.Risk_Score; }, 0) / drivers.length).toFixed(1);
+var avgMaxSpd = (drivers.reduce(function(s,d) { return s + d.Max_Speed_kmph; }, 0) / drivers.length).toFixed(1);
+
+document.getElementById('driverKPIs').innerHTML =
+  '<div class="kpi-card"><div class="kpi-card-val c-red">' + riskiest.Risk_Score + '</div><div class="kpi-card-label">Highest Risk</div><div class="kpi-card-sub">' + riskiest.Driver_Name + ' (' + riskiest.Driver_ID + ')</div></div>' +
+  '<div class="kpi-card"><div class="kpi-card-val c-green">' + safest.Risk_Score + '</div><div class="kpi-card-label">Lowest Risk</div><div class="kpi-card-sub">' + safest.Driver_Name + ' (' + safest.Driver_ID + ')</div></div>' +
+  '<div class="kpi-card"><div class="kpi-card-val c-amber">' + avgRisk + '</div><div class="kpi-card-label">Fleet Avg Risk</div><div class="kpi-card-sub">Across all 30 drivers</div></div>' +
+  '<div class="kpi-card"><div class="kpi-card-val c-blue">' + avgMaxSpd + '</div><div class="kpi-card-label">Avg Max Speed</div><div class="kpi-card-sub">km/h across fleet</div></div>';
+
+var avatarColors = ['#3b82f6','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899','#14b8a6'];
+function ac(did) { return avatarColors[parseInt(did.slice(1)) % avatarColors.length]; }
+
+function buildDriverTable(list) {
+  document.getElementById('driverTableBody').innerHTML = list.map(function(d, i) {
+    var rc = riskColor(d.Risk_Score);
+    var col = ac(d.Driver_ID);
+    var initials = d.Driver_Name.split(' ').map(function(w) { return w[0]; }).join('').slice(0,2);
+    return '<tr>' +
+      '<td style="color:var(--text3);font-weight:700;">' + (i+1) + '</td>' +
+      '<td><div class="driver-name-cell"><div class="avatar" style="background:' + col + '22;color:' + col + '">' + initials + '</div><div><div class="driver-name">' + d.Driver_Name + '</div><div class="driver-meta">' + d.Driver_ID + ' · ' + d.Gender + ' · Age ' + d.Age + '</div></div></div></td>' +
+      '<td>' + d.Home_Hub + '</td>' +
+      '<td>' + d.Experience_Years + ' yr</td>' +
+      '<td><div class="score-bar"><span class="score-bar-val" style="color:' + rc + '">' + d.Risk_Score + '</span><div class="score-bar-track"><div class="score-bar-fill" style="width:' + (d.Risk_Score/30*100) + '%;background:' + rc + '"></div></div></div></td>' +
+      '<td>' + d.Speed_Violation_Pct + '%</td>' +
+      '<td>' + d.Hard_Brake_Pct + '%</td>' +
+      '<td style="font-weight:700;color:var(--accent);">' + d.Max_Speed_kmph + '</td>' +
+      '<td>' + riskBadge(d.Risk_Score) + '</td>' +
+      '<td><button class="detail-btn" onclick="openModal(\'' + d.Driver_ID + '\')">Details</button></td>' +
+      '</tr>';
+  }).join('');
+}
+
+function filterDrivers() {
+  var q = document.getElementById('driverSearch').value.toLowerCase();
+  var sort = document.getElementById('driverSort').value;
+  var list = drivers.slice();
+  if (q) list = list.filter(function(d) { return d.Driver_Name.toLowerCase().indexOf(q) >= 0 || d.Driver_ID.toLowerCase().indexOf(q) >= 0 || d.Home_Hub.toLowerCase().indexOf(q) >= 0; });
+  if (sort === 'risk-desc') list.sort(function(a,b) { return b.Risk_Score - a.Risk_Score; });
+  if (sort === 'risk-asc')  list.sort(function(a,b) { return a.Risk_Score - b.Risk_Score; });
+  if (sort === 'name')      list.sort(function(a,b) { return a.Driver_Name.localeCompare(b.Driver_Name); });
+  if (sort === 'speed')     list.sort(function(a,b) { return b.Max_Speed_kmph - a.Max_Speed_kmph; });
+  buildDriverTable(list);
+}
+filterDrivers();
+
+/* Charts */
+mkC('c-allrisk', 'bar',
+  sortedD.map(function(d) { return d.Driver_ID; }),
+  [{label: 'Risk Score', data: sortedD.map(function(d) { return d.Risk_Score; }),
+    backgroundColor: sortedD.map(function(d) { var c = riskColor(d.Risk_Score); return c === RD ? RDA : c === AM ? AMA : GRA; }),
+    borderColor: sortedD.map(function(d) { return riskColor(d.Risk_Score); }),
+    borderWidth: 2, borderRadius: 6, borderSkipped: false}],
+  {plugins: {legend: {display: false}},
+    scales: {x: {grid: {display: false}, ticks: {font: {size: 9}, maxRotation: 45}}, y: {min: 0, max: 30}}}
+);
+
+var top10 = sortedD.slice(0, 10);
+mkC('c-riskcomp', 'bar', top10.map(function(d) { return d.Driver_ID; }), [
+  {label: 'Speed (30%)',   data: top10.map(function(d) { return +(d.Speed_Score * 0.30).toFixed(1); }), backgroundColor: 'rgba(239,68,68,0.75)', borderRadius: 3},
+  {label: 'Braking (25%)', data: top10.map(function(d) { return +(d.Braking_Score * 0.25).toFixed(1); }), backgroundColor: 'rgba(245,158,11,0.75)', borderRadius: 3},
+  {label: 'Lateral (20%)', data: top10.map(function(d) { return +(d.Lateral_Score * 0.20).toFixed(1); }), backgroundColor: 'rgba(139,92,246,0.75)', borderRadius: 3},
+  {label: 'Yaw (15%)',     data: top10.map(function(d) { return +(d.Yaw_Score * 0.15).toFixed(1); }), backgroundColor: 'rgba(59,130,246,0.75)', borderRadius: 3},
+  {label: 'Night (10%)',   data: top10.map(function(d) { return +(d.Night_Score * 0.10).toFixed(1); }), backgroundColor: 'rgba(99,102,241,0.75)', borderRadius: 3},
+], {scales: {x: {stacked: true, grid: {display: false}}, y: {stacked: true, min: 0}}});
+
+mkC('c-expvsr', 'scatter', null, [{
+  label: 'Driver', data: drivers.map(function(d) { return {x: d.Experience_Years, y: d.Risk_Score}; }),
+  backgroundColor: drivers.map(function(d) { return riskColor(d.Risk_Score) + '44'; }),
+  borderColor: drivers.map(function(d) { return riskColor(d.Risk_Score); }),
+  borderWidth: 2, pointRadius: 8
+}], {scales: {
+  x: {title: {display: true, text: 'License Experience (years)'}, min: 0, grid: {display: false}},
+  y: {title: {display: true, text: 'Risk Score'}, min: 0}
+}});
+
+/* Modal */
+var radarInst = null;
+function openModal(did) {
+  var d = drivers.find(function(x) { return x.Driver_ID === did; });
+  if (!d) return;
+  document.getElementById('m-name').textContent = d.Driver_Name;
+  document.getElementById('m-sub').textContent = d.Driver_ID + ' · ' + d.Home_Hub + ' · ' + d.Experience_Years + ' yr experience · ' + d.Total_Trips + ' trips · ' + d.Total_Minutes + ' minutes tracked';
+  var stats = [
+    ['Risk Score', d.Risk_Score + ' / 100'], ['Max Speed', d.Max_Speed_kmph + ' km/h'], ['Avg Speed', d.Avg_Speed_kmph + ' km/h'],
+    ['Hard Brakes', d.Hard_Brakes + ' events (' + d.Hard_Brake_Pct + '%)'], ['Sharp Turns', d.Sharp_Turns + ' events (' + d.Sharp_Turn_Pct + '%)'],
+    ['Yaw Spikes', d.Yaw_Spikes + ' events (' + d.Yaw_Spike_Pct + '%)'],
+    ['Night Trips', d.Night_Trips + ' of ' + d.Total_Trips], ['Speed Violations', d.Speed_Violations + ' mins (' + d.Speed_Violation_Pct + '%)'],
+    ['Vehicle', d.Primary_Vehicle_ID],
+  ];
+  document.getElementById('m-stats').innerHTML = stats.map(function(s) { return '<div class="modal-stat"><div class="modal-stat-label">' + s[0] + '</div><div class="modal-stat-val">' + s[1] + '</div></div>'; }).join('');
+  var bars = [['bf-speed','b-speed',d.Speed_Score],['bf-brake','b-brake',d.Braking_Score],['bf-turn','b-turn',d.Lateral_Score],['bf-yaw','b-yaw',d.Yaw_Score],['bf-night','b-night',d.Night_Score]];
+  bars.forEach(function(b) { document.getElementById(b[0]).style.width = b[2] + '%'; document.getElementById(b[1]).textContent = b[2].toFixed(1); });
+  if (radarInst) radarInst.destroy();
+  radarInst = new Chart(document.getElementById('m-radar'), {
+    type: 'radar', data: {labels: ['Speed','Braking','Lateral','Yaw','Night'],
+    datasets: [{label: d.Driver_Name, data: [d.Speed_Score, d.Braking_Score, d.Lateral_Score, d.Yaw_Score, d.Night_Score],
+      backgroundColor: 'rgba(59,130,246,0.15)', borderColor: BL, borderWidth: 2, pointBackgroundColor: BL, pointRadius: 4}]},
+    options: {responsive: true, maintainAspectRatio: true,
+      scales: {r: {min: 0, max: 100, grid: {color: '#1f293d'}, ticks: {color: '#6b7280', font: {size: 9}, backdropColor: 'transparent'}, pointLabels: {color: '#9ca3af', font: {size: 11, weight: '600'}}}},
+      plugins: {legend: {display: false}}}
+  });
+  document.getElementById('overlay').classList.add('open');
+}
+function closeModal() { document.getElementById('overlay').classList.remove('open'); }
+
+/* ═══ VEHICLES ═══ */
+var sortedV = vehicles.slice().sort(function(a,b) { return a.Health_Score - b.Health_Score; });
+var bestV = sortedV[sortedV.length - 1];
+var worstV = sortedV[0];
+var maintCount = vehicles.filter(function(v) { return v.Maintenance_Flag === 'CRITICAL' || v.Maintenance_Flag === 'DUE'; }).length;
+var avgHealth = (vehicles.reduce(function(s,v) { return s + v.Health_Score; }, 0) / vehicles.length).toFixed(1);
+
+document.getElementById('vehicleKPIs').innerHTML =
+  '<div class="kpi-card"><div class="kpi-card-val c-red">' + worstV.Health_Score + '</div><div class="kpi-card-label">Needs Most Attention</div><div class="kpi-card-sub">' + worstV.Vehicle_ID + ' ' + worstV.Make + ' ' + worstV.Model + '</div></div>' +
+  '<div class="kpi-card"><div class="kpi-card-val c-green">' + bestV.Health_Score + '</div><div class="kpi-card-label">Healthiest Vehicle</div><div class="kpi-card-sub">' + bestV.Vehicle_ID + ' ' + bestV.Make + ' ' + bestV.Model + '</div></div>' +
+  '<div class="kpi-card"><div class="kpi-card-val c-amber">' + maintCount + '</div><div class="kpi-card-label">Due / Critical</div><div class="kpi-card-sub">Vehicles needing service</div></div>' +
+  '<div class="kpi-card"><div class="kpi-card-val c-blue">' + avgHealth + '</div><div class="kpi-card-label">Fleet Avg Health</div><div class="kpi-card-sub">Out of 100</div></div>';
+
+function flagBadge(f) {
+  var cls = {OK:'badge-ok',MONITOR:'badge-monitor',DUE:'badge-due',CRITICAL:'badge-critical'}[f];
+  var em = {OK:'✅',MONITOR:'👁️',DUE:'⚠️',CRITICAL:'🔴'}[f];
+  return '<span class="badge ' + cls + '">' + em + ' ' + f + '</span>';
+}
+
+function buildVehList(list) {
+  document.getElementById('vehList').innerHTML = list.map(function(v) {
+    var hc = healthColor(v.Health_Score);
+    var cls = v.Maintenance_Flag.toLowerCase() + '-item';
+    return '<div class="veh-item ' + cls + '">' +
+      '<div class="vi-primary"><div class="vi-id">' + v.Vehicle_ID + '</div><div class="vi-name">' + v.Make + ' ' + v.Model + '</div><div class="vi-model">' + v.Manufacture_Year + ' · ' + v.Odometer_KM.toLocaleString() + ' km</div></div>' +
+      '<div><div class="vi-stat-val" style="color:' + hc + '">' + v.Health_Score + '<span style="font-size:0.65rem;color:var(--text3);font-weight:500;"> /100</span></div><div class="vi-stat-label">Health Score</div></div>' +
+      '<div><div class="vi-stat-val" style="color:' + (v.Days_Since_Service > 90 ? RD : v.Days_Since_Service > 60 ? AM : GR) + '">' + v.Days_Since_Service + 'd</div><div class="vi-stat-label">Since Service</div></div>' +
+      '<div><div class="vi-stat-val">' + v.Vibration_Std + '</div><div class="vi-stat-label">Vibration σ</div></div>' +
+      '<div>' + flagBadge(v.Maintenance_Flag) + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function filterVehicles() {
+  var q = document.getElementById('vehicleSearch').value.toLowerCase();
+  var list = vehicles.slice();
+  if (q) list = list.filter(function(v) { return v.Vehicle_ID.toLowerCase().indexOf(q) >= 0 || v.Make.toLowerCase().indexOf(q) >= 0 || v.Model.toLowerCase().indexOf(q) >= 0; });
+  list.sort(function(a,b) { return a.Health_Score - b.Health_Score; });
+  buildVehList(list);
+}
+filterVehicles();
+
+/* Vehicle charts */
+var svc = vehicles.slice().sort(function(a,b) { return b.Days_Since_Service - a.Days_Since_Service; });
+mkC('c-service', 'bar', svc.map(function(v){return v.Vehicle_ID;}), [{
+  label:'Days', data:svc.map(function(v){return v.Days_Since_Service;}),
+  backgroundColor: svc.map(function(v){return v.Days_Since_Service>90?RDA:v.Days_Since_Service>60?AMA:GRA;}),
+  borderColor: svc.map(function(v){return v.Days_Since_Service>90?RD:v.Days_Since_Service>60?AM:GR;}),
+  borderWidth:2, borderRadius:6, borderSkipped:false
+}], {plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{title:{display:true,text:'Days'}}}});
+
+var vib = vehicles.slice().sort(function(a,b){return b.Vibration_Std-a.Vibration_Std;});
+mkC('c-vib', 'bar', vib.map(function(v){return v.Vehicle_ID;}), [{
+  label:'Std Dev', data:vib.map(function(v){return v.Vibration_Std;}),
+  backgroundColor: vib.map(function(v){return v.Vibration_Std>0.06?RDA:v.Vibration_Std>0.04?AMA:GRA;}),
+  borderColor: vib.map(function(v){return v.Vibration_Std>0.06?RD:v.Vibration_Std>0.04?AM:GR;}),
+  borderWidth:2, borderRadius:6, borderSkipped:false
+}], {plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{title:{display:true,text:'σ (g)'}}}});
+
+mkC('c-odohealth', 'scatter', null, [{
+  label:'Vehicle', data:vehicles.map(function(v){return{x:v.Odometer_KM,y:v.Health_Score};}),
+  backgroundColor: vehicles.map(function(v){return healthColor(v.Health_Score)+'44';}),
+  borderColor: vehicles.map(function(v){return healthColor(v.Health_Score);}),
+  borderWidth:2, pointRadius:8
+}], {scales:{x:{title:{display:true,text:'Odometer (km)'},grid:{display:false}}, y:{title:{display:true,text:'Health Score'},min:0,max:100}}});
+
+mkC('c-makehealth', 'bar',
+  DATA.makes.map(function(m){return m.make;}),
+  [{label:'Avg Health', data:DATA.makes.map(function(m){return m.avg_health;}),
+    backgroundColor: DATA.makes.map(function(m){return m.avg_health>60?GRA:m.avg_health>45?AMA:RDA;}),
+    borderColor: DATA.makes.map(function(m){return m.avg_health>60?GR:m.avg_health>45?AM:RD;}),
+    borderWidth:2, borderRadius:6, borderSkipped:false}],
+  {plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{min:0,max:100}}});
+</script>
+</body>
+</html>
