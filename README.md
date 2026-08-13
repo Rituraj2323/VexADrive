@@ -8,7 +8,7 @@ Live Dashboard URL: **[https://deploy-pearl-alpha-76.vercel.app](https://deploy-
 
 ## 📌 Project Overview
 
-This repository parses, processes, and visualizes multi-modal telematics data from **30 delivery drivers**, **30 fleet two-wheelers**, **450 trips**, and **12,987 per-minute telemetry records**.
+This repository processes and visualizes multi-modal telematics data from **30 delivery drivers**, **30 fleet two-wheelers**, **450 trips**, and **12,987 per-minute telemetry records**.
 
 It provides two core operational dashboards:
 1. **Driver Behaviour Dashboard** — Quantifies driver safety & aggressive driving patterns using IMU (accelerometer + gyroscope) and GPS telemetry.
@@ -90,7 +90,6 @@ Where:
 ```
 VexADrive/
 ├── index.html            # Single-file self-contained interactive web dashboard
-├── extract_vexar.py      # PDF parsing & data extraction script
 ├── analytics_engine.py   # Telemetry analytics & scoring computation engine
 └── build_dashboard.py    # Generator script embedding analytics into index.html
 ```
